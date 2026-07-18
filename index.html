@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="C2 Sari-Sari Store Laoag City - POS, Inventory, Employee Payroll, and Analytics System.">
+  <title>C2 Sari-Sari Store - Advanced POS &amp; Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body class="sari-sari-theme theme-classic">
+
+  <!-- REFRESH BUTTON (FLOATING HELPERS) -->
+  <button id="global-refresh-btn" onclick="refreshUI()" title="Refresh System Speed">🔄 Refresh UI</button>
+
+  <!-- LOGIN SCREEN -->
+  <div class="login-screen" id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="store-badge-lg">C2</span>
+        <h1>C2 SARI-SARI STORE</h1>
+        <p>LAOAG CITY &middot; Advanced POS &amp; Management</p>
+      </div>
+      <div class="login-form-area">
+        <div class="form-group">
+          <label class="login-label" for="login-username">Select Employee Account</label>
+          <select id="login-username" class="login-select" onchange="document.getElementById('login-pin').value='';"></select>
+        </div>
+        <div class="form-group mt-12">
+          <label class="login-label" for="login-pin">Passcode / PIN Code</label>
+          <input type="password" id="login-pin" class="pin-input" maxlength="12" placeholder="Enter PIN" autocomplete="off" onkeydown="if(event.key==='Enter') attemptLogin()">
+        </div>
+        <div class="pin-pad">
+          <button class="pin-pad-btn" onclick="appendPin('1')">1</button>
+          <button class="pin-pad-btn" onclick="appendPin('2')">2</button>
+          <button class="pin-pad-btn" onclick="appendPin('3')">3</button>
+          <button class="pin-pad-btn" onclick="appendPin('4')">4</button>
+          <button class="pin-pad-btn" onclick="appendPin('5')">5</button>
+          <button class="pin-pad-btn" onclick="appendPin('6')">6</button>
+          <button class="pin-pad-btn" onclick="appendPin('7')">7</button>
+          <button class="pin-pad-btn" onclick="appendPin('8')">8</button>
+          <button class="pin-pad-btn" onclick="appendPin('9')">9</button>
+          <button class="pin-pad-btn pin-clear" onclick="clearPin()">&#9003;</button>
+          <button class="pin-pad-btn" onclick="appendPin('0')">0</button>
+          <button class="pin-pad-btn pin-enter" onclick="attemptLogin()">OK</button>
+        </div>
+        <p id="login-error" class="login-error"></p>
+        <p class="login-hint">Default PIN for all accounts: <strong>1016</strong> (originally 1234)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION -->
+  <div class="app-layout" id="app-layout" style="display:none;">
+    <header class="app-header">
+      <div class="header-branding">
+        <span class="store-badge">C2</span>
+        <div class="store-details">
+          <h1 id="header-store-name">C2 SARI-SARI STORE</h1>
+          <p id="header-store-loc">LAOAG CITY &middot; POS</p>
+        </div>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn active" id="nav-pos" onclick="switchTab('pos')">🛒 POS Terminal</button>
+        <button class="nav-btn" id="nav-dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+        <button class="nav-btn" id="nav-inventory" onclick="switchTab('inventory')">📦 Stocks &amp; Credits</button>
+        <button class="nav-btn" id="nav-deliveries" onclick="switchTab('deliveries')">🚚 Deliveries</button>
+        <button class="nav-btn" id="nav-employee" onclick="switchTab('employee')">👥 Staff &amp; Payroll</button>
+        <button class="nav-btn" id="nav-analytics" onclick="switchTab('analytics')">📈 Reports</button>
+        <button class="nav-btn" id="nav-ai" onclick="switchTab('ai')">🤖 AI Helper</button>
+        <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')">⚙️ Settings</button>
+      </nav>
+      <div class="header-right">
+        <div id="live-time">00:00:00</div>
+        <div class="session-info">
+          <div class="employee-activity-status">
+            <span id="session-role-badge" class="role-badge">Cashier</span>
+            <button id="shift-toggle-btn" class="shift-btn clocked-out" onclick="toggleShift()">Clock In</button>
+          </div>
+          <button class="action-btn-secondary" onclick="logoutSession()">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-content">
+
+      <!-- TAB 1: POS TERMINAL -->
+      <section class="tab-section active" id="section-pos">
+        <div class="pos-grid">
+          <div class="catalog-panel">
+            <div class="panel-control-row">
+              <div class="category-filters" id="category-chips">
+                <button class="filter-chip active" onclick="filterCatalog('all', this)">All Items</button>
+                <button class="filter-chip" onclick="filterCatalog('beverages', this)">Beverages</button>
+                <button class="filter-chip" onclick="filterCatalog('snacks', this)">Snacks &amp; Noodles</button>
+                <button class="filter-chip" onclick="filterCatalog('pantry', this)">Pantry</button>
+                <button class="filter-chip" onclick="filterCatalog('fresh-house', this)">Household</button>
+              </div>
+              <button class="btn-secondary" style="border-radius:20px; font-size:11px; padding:4px 10px; margin-left:6px;" onclick="openCategoryModal()">➕ Category</button>
+              <div class="barcode-search-wrapper">
+                <input type="text" id="barcode-input" placeholder="Scan or Type SKU/Barcode..." onkeydown="handleBarcodeScan(event)">
+                <button class="btn-secondary" onclick="openCameraModal()" title="Use Mobile/Webcam Barcode Scanner">📷 Camera</button>
+              </div>
+              <div class="search-box-wrapper">
+                <input type="text" id="search-input" placeholder="Search item..." oninput="handleSearch(this.value)">
+              </div>
+            </div>
+            <div class="products-grid" id="pos-products-grid"></div>
+          </div>
+          <div class="cart-panel">
+            <div class="panel-header-simple">
+              <h2>Current Order</h2>
+              <span class="item-count-badge" id="cart-item-count">0 items</span>
+            </div>
+            <div class="cart-items-wrapper" id="cart-items-list">
+              <div class="cart-empty-state">
+                <div class="empty-icon">🛒</div>
+                <p>Cart is Empty</p>
+                <span>Select items or scan barcode.</span>
+              </div>
+            </div>
+            <div class="cart-totals-summary">
+              <div class="summary-line"><span>VATable Sales</span><span id="summary-vatable">₱0.00</span></div>
+              <div class="summary-line"><span>VAT Amount (12%)</span><span id="summary-vat-amount">₱0.00</span></div>
+              <div class="summary-line total-line"><span>Total Amount Due</span><span id="summary-total">₱0.00</span></div>
+            </div>
+            <div class="cart-actions-row">
+              <button class="btn-danger" id="clear-order-btn" onclick="clearCart()" disabled>Clear</button>
+              <button class="btn-primary flex-grow" id="checkout-order-btn" onclick="openCheckoutReceipt()" disabled>Place Order &amp; Pay</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: DASHBOARD -->
+      <section class="tab-section" id="section-dashboard">
+        <div class="dashboard-page-scroll">
+          <div class="dash-banner">
+            <div class="dash-banner-lead">
+              <h3>Today's Store Sales</h3>
+              <h1 id="dash-today-earnings-count">₱0.00</h1>
+            </div>
+            <div class="dash-quick-stats">
+              <div class="quick-stat-box">
+                <span class="label">Today's Transactions</span>
+                <span id="dash-today-transactions">0</span>
+              </div>
+              <div class="quick-stat-box">
+                <span class="label">Staff Currently Clocked In</span>
+                <span id="dash-active-staff-count">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-cards-grid">
+            <div class="dashboard-card card-revenue">
+              <span class="card-icon">💰</span>
+              <div class="card-info"><h3>Total Revenue</h3><p id="dash-revenue">₱0.00</p></div>
+            </div>
+            <div class="dashboard-card card-profit">
+              <span class="card-icon">📈</span>
+              <div class="card-info"><h3>Est. profit</h3><p id="dash-profit">₱0.00</p></div>
+            </div>
+            <div class="dashboard-card card-expenses">
+              <span class="card-icon">📉</span>
+              <div class="card-info"><h3>Fixed expenses</h3><p id="dash-expenses">₱0.00</p></div>
+            </div>
+            <div class="dashboard-card card-out-stock">
+              <span class="card-icon">⚠️</span>
+              <div class="card-info"><h3>Out of Stock</h3><p id="dash-low-stock">0 items</p></div>
+            </div>
+          </div>
+
+          <div class="dash-grid-layout">
+            <div class="dash-col-left">
+              <!-- Recent Transactions Panel -->
+              <div class="widget-panel">
+                <div class="panel-header-simple">
+                  <h3>Recent Transactions (Last 10)</h3>
+                </div>
+                <div class="recent-transactions-list" id="recent-transactions-list">
+                  <p class="text-center-muted">No transactions completed today.</p>
+                </div>
+              </div>
+              <!-- Alerts & Notifications -->
+              <div class="widget-panel mt-12">
+                <div class="panel-header-simple">
+                  <h3>Smart Notifications &amp; Alerts</h3>
+                </div>
+                <div class="notifications-list" id="notifications-list">
+                  <div class="no-notifs-alert">🎉 All systems normal. No stock or expiry warnings.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dash-col-right">
+              <!-- Wallet breakdown comparing GCash vs Maya -->
+              <div class="widget-panel">
+                <div class="panel-header-simple">
+                  <h3>Tender Wallet Comparison</h3>
+                </div>
+                <div class="wallet-comparison-visual">
+                  <div class="wallet-bar-box">
+                    <span class="wallet-label gcash">GCash</span>
+                    <div class="wallet-progress-container"><div id="wallet-progress-gcash" class="wallet-progress gcash-bg" style="width: 0%;"></div></div>
+                    <span id="wallet-val-gcash" class="wallet-val">₱0.00</span>
+                  </div>
+                  <div class="wallet-bar-box mt-12">
+                    <span class="wallet-label maya">Maya</span>
+                    <div class="wallet-progress-container"><div id="wallet-progress-maya" class="wallet-progress maya-bg" style="width: 0%;"></div></div>
+                    <span id="wallet-val-maya" class="wallet-val">₱0.00</span>
+                  </div>
+                  <div class="wallet-bar-box mt-12">
+                    <span class="wallet-label cash">Cash</span>
+                    <div class="wallet-progress-container"><div id="wallet-progress-cash-tender" class="wallet-progress cash-bg" style="width: 0%;"></div></div>
+                    <span id="wallet-val-cash" class="wallet-val">₱0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Employee Leaderboard -->
+              <div class="widget-panel mt-12">
+                <div class="panel-header-simple">
+                  <h3>Employee Leaderboard</h3>
+                </div>
+                <div class="leaderboard-list" id="dash-employee-leaderboard">
+                  <p class="text-center-muted">No staff sales registered.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: STOCKS & CREDITS -->
+      <section class="tab-section" id="section-inventory">
+        <div class="inventory-page-scroll">
+          <div class="inventory-header-tabs">
+            <button class="inventory-sub-tab active" id="subtab-inventory" onclick="switchInventorySubTab('inventory')">📦 Stock Inventory</button>
+            <button class="inventory-sub-tab" id="subtab-credits" onclick="switchInventorySubTab('credits')">📓 Credit Ledger (Utang Book)</button>
+          </div>
+
+          <!-- SUB-TAB 1: INVENTORY CONTROL -->
+          <div class="inventory-tab-content active" id="inv-panel-inventory">
+            <div class="inventory-split-layout">
+              <div class="inventory-table-panel">
+                <div class="panel-header-simple">
+                  <h2>Inventory Control Grid</h2>
+                  <div class="table-actions">
+                    <input type="text" id="inv-search" placeholder="Filter inventory..." oninput="filterInventory(this.value)" class="inv-filter-input">
+                    <button class="btn-secondary" onclick="exportInventoryToExcel()">Excel Export</button>
+                  </div>
+                </div>
+                <div class="table-responsive-wrapper">
+                  <table class="inventory-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Category</th>
+                        <th>Cost (₱)</th>
+                        <th>Price (₱)</th>
+                        <th>Margin / Profit</th>
+                        <th>Expiry Date</th>
+                        <th>Supplier</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="inventory-table-body"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="inventory-form-panel">
+                <div class="panel-header-simple"><h2>Register New Item</h2></div>
+                <form id="new-product-form" onsubmit="handleAddNewProduct(event)" class="flat-form">
+                  <div class="form-group">
+                    <label for="prod-name">Product Name *</label>
+                    <input type="text" id="prod-name" placeholder="e.g. Kopiko Brown Coffee" required>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="prod-sku">Barcode / SKU</label>
+                      <input type="text" id="prod-sku" placeholder="Auto-generated if blank">
+                    </div>
+                    <div class="form-group">
+                      <label for="prod-category">Category *</label>
+                      <select id="prod-category" required>
+                        <option value="beverages">Beverages</option>
+                        <option value="snacks">Snacks &amp; Noodles</option>
+                        <option value="pantry">Pantry Essentials</option>
+                        <option value="fresh-house">Household &amp; Eggs</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="prod-cost">Cost (₱) *</label>
+                      <input type="number" step="0.01" min="0" id="prod-cost" placeholder="7.50" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="prod-price">Price (₱) *</label>
+                      <input type="number" step="0.01" min="0" id="prod-price" placeholder="10.00" required>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="prod-stock">Initial Stock *</label>
+                      <input type="number" min="0" id="prod-stock" placeholder="50" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="prod-expiry">Expiration Date</label>
+                      <input type="date" id="prod-expiry">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="prod-supplier">Supplier Name</label>
+                    <input type="text" id="prod-supplier" placeholder="e.g. Nestrade Laoag">
+                  </div>
+                  <button type="submit" class="btn-primary btn-block">+ Register Product</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 2: CREDIT LEDGER (UTANG) -->
+          <div class="inventory-tab-content" id="inv-panel-credits">
+            <div class="inventory-split-layout">
+              <div class="inventory-table-panel">
+                <div class="panel-header-simple">
+                  <h2>Customer Credits (Utang Ledger)</h2>
+                  <div class="table-actions">
+                    <input type="text" id="credit-search" placeholder="Filter credit records..." oninput="filterCredits(this.value)" class="inv-filter-input">
+                  </div>
+                </div>
+                <div class="table-responsive-wrapper">
+                  <table class="inventory-table">
+                    <thead>
+                      <tr>
+                        <th>Customer Name</th>
+                        <th>Contact info</th>
+                        <th>Total Debts</th>
+                        <th>Date Borrowed</th>
+                        <th>Borrowed Items</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="credits-table-body"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="inventory-form-panel">
+                <div class="panel-header-simple"><h2>Log New Credit Debt</h2></div>
+                <form id="new-credit-form" onsubmit="handleAddNewCredit(event)" class="flat-form">
+                  <div class="form-group">
+                    <label for="credit-name">Customer Name *</label>
+                    <input type="text" id="credit-name" placeholder="e.g. Mang Juan" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="credit-contact">Contact No. / Barangay Address</label>
+                    <input type="text" id="credit-contact" placeholder="e.g. 0917-xxx-xxxx">
+                  </div>
+                  <div class="form-group">
+                    <label for="credit-amount">Debt Amount (₱) *</label>
+                    <input type="number" step="0.01" min="0.05" id="credit-amount" placeholder="0.00" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="credit-details">Borrowed Items Details</label>
+                    <textarea id="credit-details" placeholder="e.g. 5 eggs, 1 Safeguard soap" rows="3" class="flat-textarea"></textarea>
+                  </div>
+                  <button type="submit" class="btn-primary btn-block">+ Register Credit (Utang)</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 4: STAFF & PAYROLL -->
+      <section class="tab-section" id="section-employee">
+        <div class="employee-page-scroll">
+          <div class="employee-split-layout">
+            <div class="employee-records-panel">
+              <div class="panel-header-simple">
+                <h2>Store Staff Roster &amp; Shifts</h2>
+                <div class="table-actions">
+                  <span class="info-tag-manager">Manager Access Required to Modify Accounts</span>
+                </div>
+              </div>
+              <div class="table-responsive-wrapper">
+                <table class="inventory-table">
+                  <thead>
+                    <tr>
+                      <th>Employee Name</th>
+                      <th>Role</th>
+                      <th>Start Date</th>
+                      <th>Shift Wage Rate</th>
+                      <th>Sales Processed</th>
+                      <th>Commissions (₱)</th>
+                      <th>Hours Logged</th>
+                      <th>Wages Accrued</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="employees-table-body"></tbody>
+                </table>
+              </div>
+
+              <!-- Payroll Section -->
+              <div class="payroll-container-card mt-12">
+                <div class="panel-header-simple">
+                  <h3>Manager Payroll Hub</h3>
+                  <button class="btn-secondary" onclick="exportPayrollReport()">Export Payroll CSV</button>
+                </div>
+                <div class="table-responsive-wrapper">
+                  <table class="inventory-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Hourly Rate</th>
+                        <th>Hours Clocked</th>
+                        <th>Shift Salary</th>
+                        <th>Commission (Earned)</th>
+                        <th>Bonus / Adjustment</th>
+                        <th>Net Payroll Due</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="payroll-table-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Employee Control and Settings Panel -->
+            <div class="employee-form-panel">
+              <div class="panel-header-simple"><h2>Register Employee</h2></div>
+              <form id="new-employee-form" onsubmit="handleAddNewEmployee(event)" class="flat-form manager-restricted">
+                <div class="form-group">
+                  <label for="emp-name">Full Name *</label>
+                  <input type="text" id="emp-name" placeholder="e.g. Ana Cruz" required>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="emp-role">Role *</label>
+                    <select id="emp-role" required>
+                      <option value="cashier">Cashier</option>
+                      <option value="manager">Manager</option>
+                      <option value="owner">Owner / Administrator</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="emp-rate">Hourly Rate (₱/hr) *</label>
+                    <input type="number" step="0.50" value="50.00" id="emp-rate" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="emp-commission">Sales Commission Rate (%) *</label>
+                  <input type="number" step="0.1" value="1.0" id="emp-commission" required>
+                </div>
+                <div class="form-group">
+                  <label for="emp-pin">Default Login Passcode *</label>
+                  <input type="password" id="emp-pin" value="1016" placeholder="Enter PIN code" required>
+                </div>
+                <button type="submit" class="btn-primary btn-block">+ Add Employee</button>
+              </form>
+
+              <!-- Self Service Password settings -->
+              <div class="self-service-password-card mt-12">
+                <div class="panel-header-simple"><h4>Change My PIN Code</h4></div>
+                <div class="flat-form">
+                  <div class="form-group">
+                    <label for="new-pin-1">New PIN / Passcode</label>
+                    <input type="password" id="new-pin-1" placeholder="Enter New Passcode">
+                  </div>
+                  <div class="form-group mt-12">
+                    <label for="new-pin-2">Confirm New PIN / Passcode</label>
+                    <input type="password" id="new-pin-2" placeholder="Re-enter New Passcode">
+                  </div>
+                  <button class="btn-primary btn-block mt-12" onclick="changeSelfPassword()">Save New PIN</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: REPORTS & ANALYTICS -->
+      <section class="tab-section" id="section-analytics">
+        <div class="analytics-page-scroll">
+          <div class="analytics-stats-row">
+            <div class="stat-pill"><span class="stat-label">Today Sales</span><span class="stat-value" id="an-today-revenue">₱0.00</span></div>
+            <div class="stat-pill"><span class="stat-label">Today Profit</span><span class="stat-value success" id="an-today-profit">₱0.00</span></div>
+            <div class="stat-pill"><span class="stat-label">Total Revenue</span><span class="stat-value" id="an-total-revenue">₱0.00</span></div>
+            <div class="stat-pill"><span class="stat-label">Total Profit</span><span class="stat-value success" id="an-total-profit">₱0.00</span></div>
+            <div class="stat-pill"><span class="stat-label">Fixed Expenses</span><span class="stat-value alert-color" id="an-total-expenses">₱0.00</span></div>
+          </div>
+
+          <div class="dash-grid-layout" style="margin-bottom:14px;">
+            <div class="dash-col-left" style="flex:1;">
+              <div class="widget-panel">
+                <div class="panel-header-simple">
+                  <h3>Monthly Sales Trend</h3>
+                  <span class="trend-badge" id="trend-indicator"></span>
+                </div>
+                <canvas id="chart-sales-trend" height="150"></canvas>
+              </div>
+            </div>
+            <div class="dash-col-right" style="width:360px;">
+              <div class="widget-panel">
+                <div class="panel-header-simple"><h3>Peak Hours Analysis</h3></div>
+                <canvas id="chart-peak-hours" height="150"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-card-header"><h3>Top Selling Products</h3></div>
+              <canvas id="chart-top-products" height="220"></canvas>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-header"><h3>Break-Even Stock Analyzer</h3></div>
+              <div class="breakeven-calculator-block">
+                <div class="form-row">
+                  <div class="form-group flex-grow">
+                    <label>Set Monthly Fixed Overhead Expenses (₱)</label>
+                    <input type="number" id="overhead-input" value="1500.00" oninput="recalculateBreakEven()">
+                  </div>
+                </div>
+                <div class="breakeven-result-pill" id="breakeven-result-text">
+                  To cover costs: <strong>0 units</strong> of products must be sold this month.
+                </div>
+              </div>
+              <canvas id="chart-stock" height="200"></canvas>
+            </div>
+          </div>
+
+          <div class="category-breakdown-card mt-12">
+            <div class="panel-header-simple">
+              <h3>Category Sales Performance</h3>
+            </div>
+            <div id="category-breakdown-table"></div>
+          </div>
+
+          <!-- End of Day Report Card -->
+          <div class="category-breakdown-card mt-12">
+            <div class="panel-header-simple">
+              <h3>End-Of-Day (EOD) Sales Summary</h3>
+              <button class="btn-primary" onclick="compileAndPrintEOD()">Compile &amp; Print EOD Report</button>
+            </div>
+            <div id="eod-report-summary-box" class="eod-summary-report-rendered">
+              <p class="text-center-muted">Click the compile button to view the EOD metrics sheet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: AI HELPER -->
+      <section class="tab-section" id="section-ai">
+        <div class="analytics-page-scroll">
+          <div class="ai-helper-grid">
+            <div class="ai-interaction-card">
+              <div class="panel-header-simple">
+                <h2>C2 Assistant (AI Guidance Module)</h2>
+                <span class="ai-role-context" id="ai-active-role">Context: Logged In as Cashier</span>
+              </div>
+              <div class="ai-chat-history" id="ai-chat-history">
+                <div class="ai-message assistant">
+                  <p>Kumusta! I am the C2 Store helper. Type any system issue (e.g. <em>"Stock is missing"</em>, <em>"How to process credit"</em>, <em>"Customer needs refund"</em>) and I will provide immediate instructions tailored to your login role.</p>
+                </div>
+              </div>
+              <div class="ai-input-row">
+                <input type="text" id="ai-problem-input" placeholder="Type store issues here (e.g., Expiry alerts, GCash error...)" onkeydown="if(event.key==='Enter') queryAIHelper()">
+                <button class="btn-primary" onclick="queryAIHelper()">Ask Helper</button>
+              </div>
+            </div>
+            <div class="ai-quick-actions-panel">
+              <div class="panel-header-simple"><h3>Quick Solutions</h3></div>
+              <div class="ai-solutions-list">
+                <button class="quick-solution-btn" onclick="triggerAISolution('open-inventory')">📦 Check Stock Levels</button>
+                <button class="quick-solution-btn" onclick="triggerAISolution('credit-help')">📓 Access Credit ledger</button>
+                <button class="quick-solution-btn" onclick="triggerAISolution('reprint-receipt')">📄 Reprint Last Sales Receipt</button>
+                <button class="quick-solution-btn" onclick="triggerAISolution('payroll-query')">💰 Compute Payroll Details</button>
+                <button class="quick-solution-btn" onclick="triggerAISolution('low-stock')">⚠️ View Low Stock Alerts</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: SETTINGS PANEL -->
+      <section class="tab-section" id="section-settings">
+        <div class="analytics-page-scroll">
+          <div class="settings-search-row">
+            <input type="text" id="settings-search-bar" placeholder="🔍 Search configuration features..." oninput="filterSettings(this.value)">
+          </div>
+
+          <div class="settings-grid">
+            <!-- Global Configs -->
+            <div class="settings-card" data-setting-keyword="language filipino english ilocano store receipts header location">
+              <h3>Receipt &amp; Store Information</h3>
+              <div class="flat-form mt-12">
+                <div class="form-group">
+                  <label for="cfg-store-name">Store Name Branding</label>
+                  <input type="text" id="cfg-store-name" value="C2 STORE" onchange="updateStoreBranding()">
+                </div>
+                <div class="form-group mt-12">
+                  <label for="cfg-store-loc">Store Location / Barangay</label>
+                  <input type="text" id="cfg-store-loc" value="LAOAG CITY" onchange="updateStoreBranding()">
+                </div>
+                <div class="form-group mt-12">
+                  <label for="cfg-language">Default Language Interface</label>
+                  <select id="cfg-language" onchange="changeLanguageSetting(this.value)">
+                    <option value="en">English (US)</option>
+                    <option value="fil">Filipino / Tagalog</option>
+                    <option value="ilo">Ilocano</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tax and Payment Options -->
+            <div class="settings-card" data-setting-keyword="tax vat discount currency decimals gcash maya settings toggle">
+              <h3>Taxes &amp; Transaction System</h3>
+              <div class="flat-form mt-12">
+                <div class="toggle-setting-row">
+                  <label for="cfg-vat-toggle">Implement 12% Value Added Tax (VAT)</label>
+                  <input type="checkbox" id="cfg-vat-toggle" checked onchange="toggleVatTaxSettings()">
+                </div>
+                <div class="form-group mt-12">
+                  <label for="cfg-fixed-overhead">Store Monthly Overhead (Fixed Expenses)</label>
+                  <input type="number" id="cfg-fixed-overhead" value="1500.00" onchange="updateFixedOverheadCost()">
+                </div>
+                <div class="form-group mt-12">
+                  <label for="cfg-notif-success">Success Beep Volume / Mode</label>
+                  <select id="cfg-notif-success" onchange="changeSoundSetting()">
+                    <option value="all">Sound effects &amp; notifications enabled</option>
+                    <option value="muted">Fully Muted</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Visual Themes -->
+            <div class="settings-card" data-setting-keyword="themes classic minimalist neon arcade colors layout style darkmode">
+              <h3>Display Themes &amp; Appearance</h3>
+              <div class="flat-form mt-12">
+                <div class="form-group">
+                  <label for="cfg-theme">Active UI Theme Style</label>
+                  <select id="cfg-theme" onchange="changeSystemTheme(this.value)">
+                    <option value="classic">Classic Sari-Sari (Warm Cream &amp; Forest Green)</option>
+                    <option value="minimalist">Modern Minimalist (Sleek Slate Blue &amp; White)</option>
+                    <option value="neon">Neon Arcade (Dark Neon glows)</option>
+                  </select>
+                </div>
+                <div class="toggle-setting-row mt-12">
+                  <label for="cfg-darkmode-toggle">Manual Dark Mode Override</label>
+                  <input type="checkbox" id="cfg-darkmode-toggle" onchange="toggleDarkModeOverride()">
+                </div>
+                <div class="toggle-setting-row mt-12">
+                  <label for="cfg-scheduler-theme">Auto Theme Scheduler (Dark Mode at Night)</label>
+                  <input type="checkbox" id="cfg-scheduler-theme" checked onchange="toggleThemeScheduler()">
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup, Restore, and Reset controls -->
+            <div class="settings-card" data-setting-keyword="backup restore file factory reset disclaimer databases clear save">
+              <h3>Data Maintenance &amp; Database Backups</h3>
+              <div class="maintenance-buttons mt-12">
+                <button class="btn-secondary btn-block" onclick="triggerBackupDownload()">💾 Create System Backup (.JSON)</button>
+                <div class="restore-wrapper mt-12">
+                  <label class="btn-secondary btn-block text-center-file" style="cursor:pointer;">
+                    📥 Restore Database File
+                    <input type="file" id="restore-file-input" style="display:none;" onchange="handleRestoreDatabase(event)">
+                  </label>
+                </div>
+                <div class="dashed-line"></div>
+                <button class="btn-danger btn-block" onclick="openResetModal()">⚠️ Reset All Info</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+
+      <!-- TAB: DELIVERIES -->
+      <section class="tab-section" id="section-deliveries">
+        <div class="analytics-page-scroll">
+
+          <!-- Header Row -->
+          <div class="panel-header-simple" style="margin-bottom:16px;">
+            <h2>🚚 Delivery & Restock Management</h2>
+            <button class="btn-primary" onclick="openNewDeliveryModal()">➕ Log New Delivery Order</button>
+          </div>
+
+          <!-- Delivery Cards -->
+          <div id="delivery-cards-list">
+            <div class="no-notifs-alert" id="no-deliveries-placeholder">📦 No deliveries logged yet. Click "Log New Delivery Order" to start tracking.</div>
+          </div>
+
+          <!-- Stock Alert AI Mini Chat -->
+          <div class="widget-panel mt-12" style="max-width:620px;">
+            <div class="panel-header-simple">
+              <h3>📦 Stock Alert Assistant</h3>
+              <span class="ai-role-context">Auto-monitors low stock items</span>
+            </div>
+            <div class="ai-chat-history" id="stock-alert-chat" style="height:220px;">
+              <div class="ai-message assistant">
+                <p>👋 Hi! I automatically monitor your inventory for low stock. I'll notify you here when items are running low and suggest when to reorder.</p>
+              </div>
+            </div>
+            <div class="ai-input-row">
+              <input type="text" id="stock-alert-input" placeholder="Ask about stock levels (e.g. 'What's running low?')" onkeydown="if(event.key==='Enter') queryStockAlertBot()">
+              <button class="btn-primary" onclick="queryStockAlertBot()">Ask</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- NEW DELIVERY ORDER MODAL -->
+  <div class="modal-overlay" id="new-delivery-modal">
+    <div class="simple-dialog" style="width:460px;">
+      <h3>🚚 Log New Delivery Order</h3>
+      <form id="new-delivery-form" class="flat-form mt-12" onsubmit="submitNewDelivery(event)">
+        <div class="form-group">
+          <label for="del-supplier">Supplier Name *</label>
+          <input type="text" id="del-supplier" placeholder="e.g. Nestrade Laoag" required>
+        </div>
+        <div class="form-group mt-12">
+          <label for="del-items">Items Ordered *</label>
+          <textarea id="del-items" rows="3" class="flat-textarea" placeholder="e.g. 50 pcs Royal Tru-Orange, 30 Maruchan noodles" required></textarea>
+        </div>
+        <div class="form-row mt-12">
+          <div class="form-group">
+            <label for="del-date">Expected Delivery Date *</label>
+            <input type="date" id="del-date" required>
+          </div>
+          <div class="form-group">
+            <label for="del-cost">Order Cost (₱)</label>
+            <input type="number" step="0.01" id="del-cost" placeholder="0.00">
+          </div>
+        </div>
+        <div class="dialog-actions mt-12">
+          <button type="button" class="btn-secondary" onclick="closeNewDeliveryModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save Delivery Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RECEIVE STOCK MODAL -->
+  <div class="modal-overlay" id="receive-stock-modal">
+    <div class="simple-dialog" style="width:440px;">
+      <h3>📥 Receive Delivery Stock</h3>
+      <p id="receive-delivery-label" class="dialog-sub"></p>
+      <div class="flat-form mt-12">
+        <div class="form-group">
+          <label for="receive-product-select">Select Product to Update *</label>
+          <select id="receive-product-select" class="login-select"></select>
+        </div>
+        <div class="form-group mt-12">
+          <label for="receive-qty-input">Units Received *</label>
+          <input type="number" id="receive-qty-input" min="1" class="dialog-input" placeholder="e.g. 50">
+        </div>
+      </div>
+      <div class="dialog-actions mt-12">
+        <button class="btn-secondary" onclick="closeReceiveStockModal()">Cancel</button>
+        <button class="btn-primary" onclick="confirmReceiveStock()">✅ Update Stock &amp; Clear Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW CATEGORY MODAL -->
+  <div class="modal-overlay" id="category-modal">
+    <div class="simple-dialog" style="width:380px;">
+      <h3>➕ Add New Category</h3>
+      <div class="flat-form mt-12">
+        <div class="form-group">
+          <label for="new-category-name">Category Name *</label>
+          <input type="text" id="new-category-name" placeholder="e.g. Frozen Goods" class="dialog-input">
+        </div>
+        <div class="form-group mt-12">
+          <label for="new-category-emoji">Emoji Icon (optional)</label>
+          <input type="text" id="new-category-emoji" placeholder="e.g. 🧊" class="dialog-input" maxlength="4">
+        </div>
+      </div>
+      <div class="dialog-actions mt-12">
+        <button class="btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+        <button class="btn-primary" onclick="confirmAddCategory()">Add Category</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOW STOCK TOAST NOTIFICATION -->
+  <div id="low-stock-toast" class="low-stock-toast" style="display:none;">
+    <span id="low-stock-toast-icon">⚠️</span>
+    <span id="low-stock-toast-msg">Item is running low</span>
+    <button onclick="dismissStockToast()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;margin-left:8px;">✕</button>
+  </div>
+
+  <!-- EMON AI CHATBOT BUBBLE -->
+  <div id="emon-bubble" class="emon-bubble" onclick="toggleEmonChat()" title="Chat with Emon">
+    <span id="emon-bubble-emoji" class="emon-emoji">🤖</span>
+    <div id="emon-pulse-ring" class="emon-pulse"></div>
+  </div>
+  <div id="emon-chat-window" class="emon-chat-window" style="display:none;">
+    <div class="emon-chat-header">
+      <span>🤖 Emon — C2 AI Buddy</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="emon-status-dot"></span>
+        <span style="font-size:11px;opacity:0.8;">Online</span>
+        <button onclick="toggleEmonChat()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px;margin-left:6px;">✕</button>
+      </div>
+    </div>
+    <div class="emon-chat-body" id="emon-chat-body">
+      <div class="emon-msg emon-msg-bot">
+        <span class="emon-avatar">🤖</span>
+        <div class="emon-bubble-msg">Kumusta! I'm <strong>Emon</strong>, your C2 Store AI buddy! 😄<br>Ask me anything about stock, sales, or deliveries!</div>
+      </div>
+    </div>
+    <div class="emon-chat-footer">
+      <input type="text" id="emon-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendEmonMessage()">
+      <button class="btn-primary" onclick="sendEmonMessage()">➤</button>
+    </div>
+  </div>
+
+
+  <div class="modal-overlay" id="checkout-modal">
+    <div class="thermal-receipt-container">
+      <div class="thermal-receipt" id="printable-receipt">
+        <div class="receipt-header">
+          <h2 id="receipt-store-branding">C2 SARI-SARI STORE</h2>
+          <p id="receipt-store-location">LAOAG CITY</p>
+          <div class="dashed-line"></div>
+        </div>
+        <div class="receipt-meta">
+          <p>Date: <span id="receipt-date"></span></p>
+          <p>Receipt No: <span id="receipt-number"></span></p>
+          <p>Cashier: <span id="receipt-cashier"></span></p>
+          <div class="dashed-line"></div>
+        </div>
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th class="align-left">Item</th>
+              <th class="align-center">Qty</th>
+              <th class="align-right">Price</th>
+              <th class="align-right">Total</th>
+            </tr>
+          </thead>
+          <tbody id="receipt-items-tbody"></tbody>
+        </table>
+        <div class="dashed-line"></div>
+        <div class="receipt-totals-block">
+          <div class="receipt-total-row"><span>VATable Sales:</span><span id="r-subtotal">₱0.00</span></div>
+          <div class="receipt-total-row"><span>12% VAT:</span><span id="r-vat">₱0.00</span></div>
+          <div class="receipt-total-row grand-total"><span>GRAND TOTAL:</span><span id="r-total">₱0.00</span></div>
+          <div class="receipt-total-row" id="r-wallet-type-row" style="display:none;"><span>Tender Wallet:</span><span id="r-wallet-type"></span></div>
+          <div class="receipt-total-row" id="r-ref-row" style="display:none;"><span>Ref ID:</span><span id="r-ref-number"></span></div>
+          <div class="receipt-total-row" id="r-cash-row" style="display:none;"><span>Cash:</span><span id="r-cash">₱0.00</span></div>
+          <div class="receipt-total-row" id="r-change-row" style="display:none;"><span>Change:</span><span id="r-change">₱0.00</span></div>
+        </div>
+        <div class="dashed-line"></div>
+        <div class="receipt-footer">
+          <p>THANK YOU! PLEASE COME AGAIN</p>
+          <p class="barcode-font">*C2STORE*</p>
+        </div>
+      </div>
+      <div class="receipt-payment-controls">
+        <h3>Complete Payment Transaction</h3>
+        <div class="calc-row">
+          <div class="calc-group">
+            <span class="label">Total Amount Due</span>
+            <span class="amount-due" id="modal-amount-due">₱0.00</span>
+          </div>
+        </div>
+        <!-- Wallet selector -->
+        <div class="wallet-payment-selection-row">
+          <button class="wallet-select-btn active" id="pay-mode-cash" onclick="changePaymentMode('cash')">💵 Cash Payment</button>
+          <button class="wallet-select-btn" id="pay-mode-gcash" onclick="changePaymentMode('gcash')">📱 GCash Wallet</button>
+          <button class="wallet-select-btn" id="pay-mode-maya" onclick="changePaymentMode('maya')">💳 PayMaya</button>
+        </div>
+
+        <div class="calc-row" id="cash-tendered-group">
+          <div class="form-group flex-grow">
+            <label for="cash-tendered-input">Cash Tendered (₱)</label>
+            <input type="number" id="cash-tendered-input" class="huge-input" placeholder="0.00" oninput="calculateChangeDue()" autofocus>
+          </div>
+        </div>
+
+        <!-- GCash / Maya reference inputs -->
+        <div class="calc-row" id="wallet-reference-group" style="display:none;">
+          <div class="form-group flex-grow">
+            <label for="wallet-reference-input">Enter E-Wallet Reference ID *</label>
+            <input type="text" id="wallet-reference-input" class="huge-input" placeholder="13-digit Reference Code" oninput="calculateChangeDue()">
+          </div>
+        </div>
+
+        <div class="calc-row" id="change-due-group">
+          <div class="calc-group success-calc">
+            <span class="label">Change Due</span>
+            <span class="change-due" id="modal-change-due">₱0.00</span>
+          </div>
+        </div>
+
+        <div class="cash-shortcuts-grid" id="cash-presets-area">
+          <button class="shortcut-btn" onclick="tenderCashPreset(20)">₱20</button>
+          <button class="shortcut-btn" onclick="tenderCashPreset(50)">₱50</button>
+          <button class="shortcut-btn" onclick="tenderCashPreset(100)">₱100</button>
+          <button class="shortcut-btn" onclick="tenderCashPreset(200)">₱200</button>
+          <button class="shortcut-btn" onclick="tenderCashPreset(500)">₱500</button>
+          <button class="shortcut-btn" onclick="tenderCashPreset(1000)">₱1000</button>
+        </div>
+
+        <div class="modal-actions-row">
+          <button class="btn-secondary" onclick="closeCheckoutReceipt()">Cancel</button>
+          <button class="btn-secondary" onclick="triggerReceiptPrint()">🖨️ Print Receipt</button>
+          <button class="btn-success flex-grow" id="confirm-payment-btn" onclick="commitTransaction()" disabled>Confirm &amp; Pay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FACTORY RESET DISCLAIMER MODAL -->
+  <div class="modal-overlay" id="reset-modal">
+    <div class="simple-dialog" style="width: 400px;">
+      <h3 style="color:var(--danger)">⚠️ Factory Reset Store Database</h3>
+      <p class="dialog-sub mt-12" style="color:var(--text-dark); line-height: 1.5;">
+        This action will permanently delete all database entries:
+        <br>&bull; Products, costs, and pricing details
+        <br>&bull; Sales history and analytics logs
+        <br>&bull; Employee accounts, attendance shifts, and salaries
+        <br>&bull; Debt lists and customer records
+        <br><br>
+        <strong>This action cannot be undone.</strong>
+      </p>
+      <div class="form-group mt-12">
+        <label for="reset-keyword-input">Type <strong>RESET ALL</strong> to confirm:</label>
+        <input type="text" id="reset-keyword-input" class="dialog-input" style="color:var(--danger)">
+      </div>
+      <div class="dialog-actions">
+        <button class="btn-secondary" onclick="closeResetModal()">Cancel</button>
+        <button class="btn-primary" style="background:var(--danger); border-color:var(--danger)" onclick="confirmResetAll()">Delete Everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESTOCK DIALOG -->
+  <div class="modal-overlay" id="restock-modal">
+    <div class="simple-dialog">
+      <h3>Restock Item</h3>
+      <p id="restock-product-name" class="dialog-sub"></p>
+      <div class="form-group mt-12">
+        <label for="restock-qty-input">Units to Add</label>
+        <input type="number" id="restock-qty-input" min="1" value="10" class="dialog-input">
+      </div>
+      <div class="dialog-actions">
+        <button class="btn-secondary" onclick="closeRestockDialog()">Cancel</button>
+        <button class="btn-primary" onclick="confirmRestock()">Add Stock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEBCAM BARCODE SCANNER MODAL -->
+  <div class="modal-overlay" id="camera-modal">
+    <div class="simple-dialog" style="width:400px; text-align:center;">
+      <h3>Webcam Barcode Scanner</h3>
+      <p class="dialog-sub">Align SKU/Barcode within the lens</p>
+      <div class="camera-stream-viewport" style="margin-top:12px; background:#000; border-radius:8px; height:240px; position:relative; overflow:hidden;">
+        <video id="webcam-video-stream" style="width:100%; height:100%; object-fit:cover; display:none;" autoplay playsinline></video>
+        <div id="video-stream-fallback" class="webcam-placeholder-graphic" style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-size:12px; opacity:0.6;">
+          📷 [ Camera Access Initializing / Mock Scan ]
+        </div>
+        <div class="scanner-aim-line" style="position:absolute; top:50%; left:5%; right:5%; height:2px; background:var(--danger); box-shadow:0 0 8px red; animation: scanGlow 1.5s infinite ease-in-out;"></div>
+      </div>
+      <!-- Mock Scan Selector for desktop demo in cases of blocked camera permissions -->
+      <div class="mock-scanner-demo-picker mt-12">
+        <label style="font-size:10px; color:var(--text-muted)">Select mock barcode item to scan:</label>
+        <select id="mock-barcode-selector" class="login-select" style="font-size:11px; padding:4px;" onchange="executeMockCameraScan(this.value)">
+          <option value="">-- Choose Item to Trigger --</option>
+        </select>
+      </div>
+      <div class="dialog-actions mt-12">
+        <button class="btn-secondary btn-block" onclick="closeCameraModal()">Close Scanner</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>
